@@ -10,6 +10,12 @@ import java.util.stream.Collectors;
 
 public class Main {
 
+    public static final String A = "/home/yfouquer/hashcode/data/a_example.txt";
+    public static final String B = "/home/yfouquer/hashcode/data/b_read_on.txt";
+    public static final String C = "/home/yfouquer/hashcode/data/c_incunabula.txt";
+    public static final String D = "/home/yfouquer/hashcode/data/d_tough_choices.txt";
+    public static final String E = "/home/yfouquer/hashcode/data/e_so_many_books.txt";
+    public static final String F = "/home/yfouquer/hashcode/data/f_libraries_of_the_world.txt";
     static List<Books> books = new ArrayList<>();
     static List<Library> libraries = new ArrayList<>();
     private static int daysForScanning;
@@ -49,11 +55,8 @@ public class Main {
     }
 
     public static void main(String[] args) {
-        loadData("/home/yfouquer/hashcode/src/a_example.txt");
+        loadData(B);
 
-        books.forEach(System.out::println);
-        System.out.println();
 
-        libraries.forEach(System.out::println);
     }
 }
