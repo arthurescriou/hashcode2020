@@ -104,11 +104,12 @@ public class Main {
 
     private static void printResult(List<Library> lib, String path) {
         try {
-
+            List<Library> collect =
+                    lib.stream().filter(libr -> !libr.getContainsBooks().isEmpty()).collect(Collectors.toList());
             FileWriter writer = new FileWriter(new File(path + "_result.txt"));
-            writer.write(lib.size()+"");
+            writer.write(collect.size()+"");
             writer.write("\n");
-            writer.write(lib.stream().filter(libr-> !libr.getContainsBooks().isEmpty()).map(libr -> libr.getId() + " " + libr.getContainsBooks().size() + "\n" + libr.getContainsBooks().values().stream().sorted(Comparator.comparingInt(Books::getNegScore)).map(books34 -> books34.getId() +"").collect(Collectors.joining(" ")) + "\n").collect(Collectors.joining()));
+            writer.write(collect.stream().filter(libr-> !libr.getContainsBooks().isEmpty()).map(libr -> libr.getId() + " " + libr.getContainsBooks().size() + "\n" + libr.getContainsBooks().values().stream().sorted(Comparator.comparingInt(Books::getNegScore)).map(books34 -> books34.getId() +"").collect(Collectors.joining(" ")) + "\n").collect(Collectors.joining()));
             writer.close();
         } catch (IOException e) {
             e.printStackTrace();
