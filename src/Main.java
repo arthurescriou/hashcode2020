@@ -31,8 +31,8 @@ public class Main {
 
             String[] s = collect.get(0).split(" ");
             int nbBooks = Integer.parseInt(s[0]);
-            int nbLibrary = Integer.parseInt(s[0]);
-            daysForScanning = Integer.parseInt(s[0]);
+            int nbLibrary = Integer.parseInt(s[1]);
+            daysForScanning = Integer.parseInt(s[2]);
 
             String[] s1 = collect.get(1).split(" ");
             for (int i = 0; i < s1.length; i++) {
@@ -68,6 +68,12 @@ public class Main {
 
             loadData(data);
 
+            System.out.println(data);
+            System.out.println("libraries.size() = " + libraries.size());
+            System.out.println("books.size() = " + books.size());
+            System.out.println("daysForScanning = " + daysForScanning);
+
+
             final int[] accuDaysSignUp = { 0 };
             List<Library> orderedSelectedLibrary =
                     libraries.stream().sorted(Comparator.comparingDouble(Main::scoreMoyenLibrary)).filter(library -> {
@@ -88,11 +94,15 @@ public class Main {
                 long nbDays = daysForScanning - libr.getStartingDate();
                 long nbTotalBooks = nbDays * libr.getCanShipPerDay();
 
+                if (libr.getContainsBooks().size() > nbTotalBooks) {
+                    System.out.println("WHAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAT");
+                }
+
                 Map<Integer, Books> result =
                         libr.getContainsBooks().values().stream().sorted(Comparator.comparingInt(Books::getNegScore)).limit(nbTotalBooks).collect(Collectors.toMap(Books::getId, books1 -> books1));
 
                 libr.setContainsBooks(result);
-                alreadySent.addAll(toSend);
+                alreadySent.addAll(result.values());
             });
 
             System.out.println(data);
@@ -109,7 +119,7 @@ public class Main {
             FileWriter writer = new FileWriter(new File(path + "_result.txt"));
             writer.write(collect.size()+"");
             writer.write("\n");
-            writer.write(collect.stream().filter(libr-> !libr.getContainsBooks().isEmpty()).map(libr -> libr.getId() + " " + libr.getContainsBooks().size() + "\n" + libr.getContainsBooks().values().stream().sorted(Comparator.comparingInt(Books::getNegScore)).map(books34 -> books34.getId() +"").collect(Collectors.joining(" ")) + "\n").collect(Collectors.joining()));
+            writer.write(collect.stream().map(libr -> libr.getId() + " " + libr.getContainsBooks().size() + "\n" + libr.getContainsBooks().values().stream().map(books34 -> books34.getId() +"").collect(Collectors.joining(" ")) + "\n").collect(Collectors.joining()));
             writer.close();
         } catch (IOException e) {
             e.printStackTrace();
