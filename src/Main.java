@@ -28,7 +28,6 @@ public class Main {
     private static void loadData(String file) {
         try {
             List<String> collect = Files.lines(Paths.get(file)).collect(Collectors.toList());
-            System.out.println(collect.size());
 
             String[] s = collect.get(0).split(" ");
             int nbBooks = Integer.parseInt(s[0]);
@@ -83,7 +82,8 @@ public class Main {
                 List<Books> toRemove = collect.get(true);
                 List<Books> toSend = collect.get(false);
 
-                libr.getContainsBooks().remove(toRemove);
+
+                toRemove.stream().map(Books::getId).forEach(integer -> libr.getContainsBooks().remove(integer));
 
                 long nbDays = daysForScanning - libr.getStartingDate();
                 long nbTotalBooks = nbDays * libr.getCanShipPerDay();
@@ -95,6 +95,8 @@ public class Main {
                 alreadySent.addAll(toSend);
             });
 
+            System.out.println(data);
+            System.out.println(score(libraries));
             printResult(orderedSelectedLibrary,data);
         });
 
@@ -111,6 +113,10 @@ public class Main {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    private static long score(List<Library> libraries) {
+        return libraries.stream().flatMap(lib -> lib.getContainsBooks().values().stream()).mapToInt(Books::getScore).sum();
     }
 
     private static double scoreMoyenLibrary(Library library) {
