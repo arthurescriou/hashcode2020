@@ -108,7 +108,7 @@ public class Main {
             FileWriter writer = new FileWriter(new File(path + "_result.txt"));
             writer.write(lib.size()+"");
             writer.write("\n");
-            writer.write(lib.stream().map(libr -> libr.getId() + " " + libr.getContainsBooks().size() + "\n" + libr.getContainsBooks().values().stream().sorted(Comparator.comparingInt(Books::getNegScore)).map(books34 -> books34.getId() +"").collect(Collectors.joining(" ")) + "\n").collect(Collectors.joining()));
+            writer.write(lib.stream().filter(libr-> !libr.getContainsBooks().isEmpty()).map(libr -> libr.getId() + " " + libr.getContainsBooks().size() + "\n" + libr.getContainsBooks().values().stream().sorted(Comparator.comparingInt(Books::getNegScore)).map(books34 -> books34.getId() +"").collect(Collectors.joining(" ")) + "\n").collect(Collectors.joining()));
             writer.close();
         } catch (IOException e) {
             e.printStackTrace();
