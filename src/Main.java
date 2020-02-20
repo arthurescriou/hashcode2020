@@ -23,11 +23,10 @@ public class Main {
     static List<Library> libraries = new ArrayList<>();
     private static int daysForScanning;
 
+    private Set<Books> alreadySent = new HashSet<>();
+
     private static void loadData(String file) {
         try {
-            List<Books> books = new ArrayList<>();
-            List<Library> libraries = new ArrayList<>();
-            daysForScanning = 0;
             List<String> collect = Files.lines(Paths.get(file)).collect(Collectors.toList());
             System.out.println(collect.size());
 
@@ -64,6 +63,10 @@ public class Main {
     public static void main(String[] args) {
 
         Stream.of(A,B,C,D,E,F).forEach(data -> {
+             books = new ArrayList<>();
+             libraries = new ArrayList<>();
+            daysForScanning = 0;
+
             loadData(data);
 
             final int[] accuDaysSignUp = { 0 };
