@@ -7,6 +7,7 @@ import java.nio.file.*;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import com.sun.org.apache.xpath.internal.operations.Or;
 
@@ -24,7 +25,11 @@ public class Main {
 
     private static void loadData(String file) {
         try {
+            List<Books> books = new ArrayList<>();
+            List<Library> libraries = new ArrayList<>();
+            daysForScanning = 0;
             List<String> collect = Files.lines(Paths.get(file)).collect(Collectors.toList());
+            System.out.println(collect.size());
 
             String[] s = collect.get(0).split(" ");
             int nbBooks = Integer.parseInt(s[0]);
@@ -57,23 +62,26 @@ public class Main {
     }
 
     public static void main(String[] args) {
-        loadData(A);
 
-        final int[] accuDaysSignUp = { 0 };
-        List<Library> OrderedSelectedLibrary =
-                libraries.stream().sorted(Comparator.comparingDouble(Main::scoreMoyenLibrary)).filter(library -> {
-                    accuDaysSignUp[0] += library.getSignUpProcess();
-                    return accuDaysSignUp[0] < daysForScanning;
-                }).collect(Collectors.toList());
+        Stream.of(A,B,C,D,E,F).forEach(data -> {
+            loadData(data);
 
-        printResult(OrderedSelectedLibrary);
+            final int[] accuDaysSignUp = { 0 };
+            List<Library> OrderedSelectedLibrary =
+                    libraries.stream().sorted(Comparator.comparingDouble(Main::scoreMoyenLibrary)).filter(library -> {
+                        accuDaysSignUp[0] += library.getSignUpProcess();
+                        return accuDaysSignUp[0] < daysForScanning;
+                    }).collect(Collectors.toList());
+
+            printResult(OrderedSelectedLibrary,data);
+        });
 
     }
 
-    private static void printResult(List<Library> lib) {
+    private static void printResult(List<Library> lib, String path) {
         try {
 
-            FileWriter writer = new FileWriter(new File(A + "_result.txt"));
+            FileWriter writer = new FileWriter(new File(path + "_result.txt"));
             writer.write(lib.size()+"");
             writer.write("\n");
             writer.write(lib.stream().map(libr -> libr.getId() + " " + libr.getContainsBooks().size() + "\n" + libr.getContainsBooks().values().stream().sorted(Comparator.comparingInt(Books::getScore)).map(books34 -> books34.getId() +"").collect(Collectors.joining(" ")) + "\n").collect(Collectors.joining()));
