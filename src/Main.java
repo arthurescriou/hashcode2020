@@ -115,6 +115,6 @@ public class Main {
 
     private static double scoreMoyenLibrary(Library library) {
         int scoreTotal = library.getContainsBooks().values().stream().mapToInt(Books::getScore).sum();
-        return scoreTotal / (0.0 + library.getSignUpProcess() + (books.size() + 0.0 / library.getCanShipPerDay()));
+        return - scoreTotal / (0.0 + library.getSignUpProcess() + (books.size() + 0.0 / library.getCanShipPerDay()));
     }
 }
