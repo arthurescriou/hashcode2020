@@ -10,6 +10,15 @@ public class Library {
     private Map<Integer,Books> containsBooks;
     private int signUpProcess;
     private int canShipPerDay;
+    private int startingDate;
+
+    public int getStartingDate() {
+        return startingDate;
+    }
+
+    public void setStartingDate(int startingDate) {
+        this.startingDate = startingDate;
+    }
 
     public Library(int id, Map<Integer, Books> containsBooks, int signUpProcess, int canShipPerDay) {
         this.id = id;

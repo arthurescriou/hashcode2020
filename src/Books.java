@@ -23,6 +23,10 @@ public class Books {
         return score;
     }
 
+    public int getNegScore() {
+        return -score;
+    }
+
     public void setScore(int score) {
         this.score = score;
     }

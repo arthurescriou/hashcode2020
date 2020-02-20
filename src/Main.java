@@ -23,7 +23,7 @@ public class Main {
     static List<Library> libraries = new ArrayList<>();
     private static int daysForScanning;
 
-    private Set<Books> alreadySent = new HashSet<>();
+    private static Set<Books> alreadySent = new HashSet<>();
 
     private static void loadData(String file) {
         try {
@@ -70,13 +70,32 @@ public class Main {
             loadData(data);
 
             final int[] accuDaysSignUp = { 0 };
-            List<Library> OrderedSelectedLibrary =
+            List<Library> orderedSelectedLibrary =
                     libraries.stream().sorted(Comparator.comparingDouble(Main::scoreMoyenLibrary)).filter(library -> {
                         accuDaysSignUp[0] += library.getSignUpProcess();
+                        library.setStartingDate(accuDaysSignUp[0]);
                         return accuDaysSignUp[0] < daysForScanning;
                     }).collect(Collectors.toList());
 
-            printResult(OrderedSelectedLibrary,data);
+            orderedSelectedLibrary.stream().forEach(libr -> {
+                Map<Boolean, List<Books>> collect =
+                        libr.getContainsBooks().values().stream().collect(Collectors.partitioningBy(book -> alreadySent.contains(book)));
+                List<Books> toRemove = collect.get(true);
+                List<Books> toSend = collect.get(false);
+
+                libr.getContainsBooks().remove(toRemove);
+
+                long nbDays = daysForScanning - libr.getStartingDate();
+                long nbTotalBooks = nbDays * libr.getCanShipPerDay();
+
+                Map<Integer, Books> result =
+                        libr.getContainsBooks().values().stream().sorted(Comparator.comparingInt(Books::getNegScore)).limit(nbTotalBooks).collect(Collectors.toMap(Books::getId, books1 -> books1));
+
+                libr.setContainsBooks(result);
+                alreadySent.addAll(toSend);
+            });
+
+            printResult(orderedSelectedLibrary,data);
         });
 
     }
@@ -87,7 +106,7 @@ public class Main {
             FileWriter writer = new FileWriter(new File(path + "_result.txt"));
             writer.write(lib.size()+"");
             writer.write("\n");
-            writer.write(lib.stream().map(libr -> libr.getId() + " " + libr.getContainsBooks().size() + "\n" + libr.getContainsBooks().values().stream().sorted(Comparator.comparingInt(Books::getScore)).map(books34 -> books34.getId() +"").collect(Collectors.joining(" ")) + "\n").collect(Collectors.joining()));
+            writer.write(lib.stream().map(libr -> libr.getId() + " " + libr.getContainsBooks().size() + "\n" + libr.getContainsBooks().values().stream().sorted(Comparator.comparingInt(Books::getNegScore)).map(books34 -> books34.getId() +"").collect(Collectors.joining(" ")) + "\n").collect(Collectors.joining()));
             writer.close();
         } catch (IOException e) {
             e.printStackTrace();
