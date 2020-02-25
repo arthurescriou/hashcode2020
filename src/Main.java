@@ -3,13 +3,13 @@
  */
 
 import java.io.*;
+import java.math.BigInteger;
 import java.nio.file.*;
 import java.util.*;
-import java.util.function.Function;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import com.sun.org.apache.xpath.internal.operations.Or;
 
 public class Main {
 
@@ -19,16 +19,15 @@ public class Main {
     public static final String D = "data/d_tough_choices.txt";
     public static final String E = "data/e_so_many_books.txt";
     public static final String F = "data/f_libraries_of_the_world.txt";
-    static List<Books> books = new ArrayList<>();
-    static List<Library> libraries = new ArrayList<>();
-    private static int daysForScanning;
-    private static int totalScore = 0;
 
-    private static Set<Books> alreadySent = new HashSet<>();
-
-    private static void loadData(String file) {
+    private static Model loadData(String file) {
         try {
             List<String> collect = Files.lines(Paths.get(file)).collect(Collectors.toList());
+
+            List<Books> books = new ArrayList<>();
+            List<Library> libraries = new ArrayList<>();
+            int daysForScanning;
+
 
             String[] s = collect.get(0).split(" ");
             int nbBooks = Integer.parseInt(s[0]);
@@ -48,63 +47,80 @@ public class Main {
                 String[] libraryStuff = collect.get(i).split(" ");
                 String[] booksInLibrary = collect.get(i + 1).split(" ");
 
-                Map<Integer, Books> booksinLib = Arrays.stream(booksInLibrary)
-                                .map(st -> books.get(Integer.parseInt(st)))
-                                .collect(Collectors.toMap(Books::getId, Function.identity()));
+                List<Books> booksInLib =
+                        Arrays.stream(booksInLibrary).map(iden -> books.get(Integer.parseInt(iden))).collect(Collectors.toList());
 
-                libraries.add(new Library(libraryId++, booksinLib, Integer.parseInt(libraryStuff[1]),
-                                Integer.parseInt(libraryStuff[2])));
+                libraries.add(new Library(libraryId++, booksInLib, Integer.parseInt(libraryStuff[1]),
+                        Integer.parseInt(libraryStuff[2])));
             }
+            return new Model(libraries, daysForScanning, new HashSet<>());
         } catch (IOException e) {
             e.printStackTrace();
         }
+        return null;
     }
 
     public static void main(String[] args) {
+        AtomicLong totalScore= new AtomicLong();
+        Stream.of(A,B,C,D,E,F).forEach(data -> {
+            Model model = loadData(data);
 
-        Stream.of(A, B, C, D, E, F).forEach(data -> {
-            books = new ArrayList<>();
-            libraries = new ArrayList<>();
-            daysForScanning = 0;
-
-            loadData(data);
-
-            final int[] accuDaysSignUp = { 0 };
-            Collections.shuffle(libraries);
-            List<Library> orderedSelectedLibrary =
-                    libraries.stream().filter(library -> {
-                        accuDaysSignUp[0] += library.getSignUpProcess();
-                        library.setStartingDate(accuDaysSignUp[0]);
-                        return accuDaysSignUp[0] < daysForScanning;
-                    }).collect(Collectors.toList());
-
-            orderedSelectedLibrary.stream().forEach(libr -> {
-                Map<Boolean, List<Books>> collect =
-                                libr.getContainsBooks().values().stream()
-                                                .collect(Collectors.partitioningBy(book -> alreadySent.contains(book)));
-                List<Books> toRemove = collect.get(true);
-                List<Books> toSend = collect.get(false);
-
-                toRemove.stream().map(Books::getId).forEach(integer -> libr.getContainsBooks().remove(integer));
-
-                long nbDays = daysForScanning - libr.getStartingDate();
-                long nbTotalBooks = nbDays * libr.getCanShipPerDay();
-
-                Map<Integer, Books> result =
-                                libr.getContainsBooks().values().stream()
-                                                .sorted(Comparator.comparingInt(Books::getNegScore)).limit(nbTotalBooks)
-                                                .collect(Collectors.toMap(Books::getId, books1 -> books1));
-
-                libr.setContainsBooks(result);
-                alreadySent.addAll(result.values());
-            });
+            List<Library> libraries = model.getLibraries();
+            int daysForScanning = model.getDaysForScanning();
+            Set<Books> alreadySent = model.getAlreadySent();
 
             System.out.println(data);
-            totalScore += score(orderedSelectedLibrary);
-            System.out.println(score(orderedSelectedLibrary));
-            printResult(orderedSelectedLibrary, data);
+
+            AtomicInteger accuDay = new AtomicInteger(0);
+            int i = 0;
+            List<Library> result = new ArrayList<>();
+            while (accuDay.get() < daysForScanning) {
+                if (i++%100 ==0) {
+                    System.out.println(accuDay.get());
+                }
+                Library library = libraries.stream().parallel().max((o1, o2) -> {
+                    if (scoreMaxPossibleLibrary(o1, accuDay.get(), daysForScanning,alreadySent) > scoreMaxPossibleLibrary(o2,
+                            accuDay.get(), daysForScanning, alreadySent)) {
+                        return 1;
+                    }
+                    return -1;
+                }).orElse(null);
+
+                if (library == null) {
+                    break;
+                }
+
+                accuDay.set(accuDay.get() + library.getSignUpProcess());
+
+                if (accuDay.get() > daysForScanning) {
+                    break;
+                }
+
+                int daysLeft = daysForScanning - accuDay.get();
+                BigInteger nbTotalBooks = BigInteger.valueOf(daysLeft).multiply(BigInteger.valueOf(library.getCanShipPerDay()));
+
+                List<Books> collect =
+                        library.getContainsBooks().stream().filter(books -> !alreadySent.contains(books)).sorted(Comparator.comparing(Books::getScore).reversed()).limit(nbTotalBooks.longValue()).collect(Collectors.toList());
+                library.setContainsBooks(collect);
+
+                alreadySent.addAll(collect);
+                result.add(library);
+                libraries.remove(library);
+            }
+
+            System.out.println(data);
+            System.out.println("accuDay " +accuDay.get());
+            System.out.println("result size " +result.size());
+            long score = score(result);
+            totalScore.addAndGet(score);
+            System.out.println("score " + score);
+            printResult(result,data);
+            System.out.println("-----------------------------");
         });
-        System.out.println(totalScore/1000000.);
+
+        System.out.println("total score " + totalScore);
+
+
 
     }
 
@@ -116,9 +132,7 @@ public class Main {
             FileWriter writer = new FileWriter(new File(path + score(lib) + ".txt"));
             writer.write(collect.size() + "");
             writer.write("\n");
-            writer.write(collect.stream().map(libr -> libr.getId() + " " + libr.getContainsBooks().size() + "\n" + libr
-                            .getContainsBooks().values().stream().map(books34 -> books34.getId() + "")
-                            .collect(Collectors.joining(" ")) + "\n").collect(Collectors.joining()));
+            writer.write(collect.stream().map(libr -> libr.getId() + " " + libr.getContainsBooks().size() + "\n" + libr.getContainsBooks().stream().map(books34 -> books34.getId() +"").collect(Collectors.joining(" "))).collect(Collectors.joining("\n")));
             writer.close();
         } catch (IOException e) {
             e.printStackTrace();
@@ -126,13 +140,17 @@ public class Main {
     }
 
     private static long score(List<Library> libraries) {
-        return libraries.stream().flatMap(lib -> lib.getContainsBooks().values().stream()).mapToInt(Books::getScore)
-                        .sum();
+        return libraries.stream().flatMap(lib -> lib.getContainsBooks().stream()).mapToInt(Books::getScore).sum();
     }
 
-    private static int scoreMoyenLibrary(Library library) {
-//        return - library.getContainsBooks().values().stream().mapToInt(Books::getScore).sum();
-        return library.getSignUpProcess();
-//        return -scoreTotal / (0.0 + library.getSignUpProcess() + (books.size() + 0.0 / library.getCanShipPerDay()));
+    private static int scoreMaxPossibleLibrary(Library library, int day, int maxDays, Set<Books> alreadySent) {
+//        return library.getSignUpProcess();
+        int nbDays = maxDays - (day + library.getSignUpProcess());
+        if (nbDays < 0) {
+            return 0;
+        }
+        BigInteger nbTotalBooks = BigInteger.valueOf(nbDays).multiply(BigInteger.valueOf(library.getCanShipPerDay()));
+
+        return library.getContainsBooks().stream().filter(books -> !alreadySent.contains(books)).sorted(Comparator.comparing(Books::getScore).reversed()).limit(nbTotalBooks.longValue()).mapToInt(Books::getScore).sum();
     }
 }

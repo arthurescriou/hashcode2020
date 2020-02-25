@@ -2,12 +2,13 @@
  * Copyright (C) by Courtanet, All Rights Reserved.
  */
 
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 public class Library {
     private int id;
-    private Map<Integer,Books> containsBooks;
+    private List<Books> containsBooks;
     private int signUpProcess;
     private int canShipPerDay;
     private int startingDate;
@@ -20,7 +21,7 @@ public class Library {
         this.startingDate = startingDate;
     }
 
-    public Library(int id, Map<Integer, Books> containsBooks, int signUpProcess, int canShipPerDay) {
+    public Library(int id, List<Books> containsBooks, int signUpProcess, int canShipPerDay) {
         this.id = id;
         this.containsBooks = containsBooks;
         this.signUpProcess = signUpProcess;
@@ -31,7 +32,7 @@ public class Library {
     public String toString() {
         return "Library{" +
                 "id=" + id +
-                ", containsBooks=" + containsBooks.entrySet().stream().map(entry -> entry.getKey()+" " +entry.getValue().toString()).collect(Collectors.joining("{",",","}")) +
+                ", containsBooks=" + containsBooks.stream().map(Books::toString).collect(Collectors.joining("{",",","}")) +
                 ", signUpProcess=" + signUpProcess +
                 ", canShipPerDay=" + canShipPerDay +
                 '}';
@@ -45,11 +46,11 @@ public class Library {
         this.id = id;
     }
 
-    public Map<Integer, Books> getContainsBooks() {
+    public List<Books> getContainsBooks() {
         return containsBooks;
     }
 
-    public void setContainsBooks(Map<Integer, Books> containsBooks) {
+    public void setContainsBooks(List<Books> containsBooks) {
         this.containsBooks = containsBooks;
     }
 
