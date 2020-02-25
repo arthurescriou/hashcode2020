@@ -22,6 +22,7 @@ public class Main {
     static List<Books> books = new ArrayList<>();
     static List<Library> libraries = new ArrayList<>();
     private static int daysForScanning;
+    private static int totalScore = 0;
 
     private static Set<Books> alreadySent = new HashSet<>();
 
@@ -48,11 +49,11 @@ public class Main {
                 String[] booksInLibrary = collect.get(i + 1).split(" ");
 
                 Map<Integer, Books> booksinLib = Arrays.stream(booksInLibrary)
-                        .map(st -> books.get(Integer.parseInt(st)))
-                        .collect(Collectors.toMap(Books::getId, Function.identity()));
+                                .map(st -> books.get(Integer.parseInt(st)))
+                                .collect(Collectors.toMap(Books::getId, Function.identity()));
 
                 libraries.add(new Library(libraryId++, booksinLib, Integer.parseInt(libraryStuff[1]),
-                        Integer.parseInt(libraryStuff[2])));
+                                Integer.parseInt(libraryStuff[2])));
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -61,22 +62,17 @@ public class Main {
 
     public static void main(String[] args) {
 
-        Stream.of(A,B,C,D,E,F).forEach(data -> {
-             books = new ArrayList<>();
-             libraries = new ArrayList<>();
+        Stream.of(A, B, C, D, E, F).forEach(data -> {
+            books = new ArrayList<>();
+            libraries = new ArrayList<>();
             daysForScanning = 0;
 
             loadData(data);
 
-            System.out.println(data);
-            System.out.println("libraries.size() = " + libraries.size());
-            System.out.println("books.size() = " + books.size());
-            System.out.println("daysForScanning = " + daysForScanning);
-
-
             final int[] accuDaysSignUp = { 0 };
+            Collections.shuffle(libraries);
             List<Library> orderedSelectedLibrary =
-                    libraries.stream().sorted(Comparator.comparingDouble(Main::scoreMoyenLibrary)).filter(library -> {
+                    libraries.stream().filter(library -> {
                         accuDaysSignUp[0] += library.getSignUpProcess();
                         library.setStartingDate(accuDaysSignUp[0]);
                         return accuDaysSignUp[0] < daysForScanning;
@@ -84,42 +80,45 @@ public class Main {
 
             orderedSelectedLibrary.stream().forEach(libr -> {
                 Map<Boolean, List<Books>> collect =
-                        libr.getContainsBooks().values().stream().collect(Collectors.partitioningBy(book -> alreadySent.contains(book)));
+                                libr.getContainsBooks().values().stream()
+                                                .collect(Collectors.partitioningBy(book -> alreadySent.contains(book)));
                 List<Books> toRemove = collect.get(true);
                 List<Books> toSend = collect.get(false);
-
 
                 toRemove.stream().map(Books::getId).forEach(integer -> libr.getContainsBooks().remove(integer));
 
                 long nbDays = daysForScanning - libr.getStartingDate();
                 long nbTotalBooks = nbDays * libr.getCanShipPerDay();
 
-                if (libr.getContainsBooks().size() > nbTotalBooks) {
-                    System.out.println("WHAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAT");
-                }
-
                 Map<Integer, Books> result =
-                        libr.getContainsBooks().values().stream().sorted(Comparator.comparingInt(Books::getNegScore)).limit(nbTotalBooks).collect(Collectors.toMap(Books::getId, books1 -> books1));
+                                libr.getContainsBooks().values().stream()
+                                                .sorted(Comparator.comparingInt(Books::getNegScore)).limit(nbTotalBooks)
+                                                .collect(Collectors.toMap(Books::getId, books1 -> books1));
 
                 libr.setContainsBooks(result);
                 alreadySent.addAll(result.values());
             });
 
             System.out.println(data);
-            System.out.println(score(libraries));
-            printResult(orderedSelectedLibrary,data);
+            totalScore += score(orderedSelectedLibrary);
+            System.out.println(score(orderedSelectedLibrary));
+            printResult(orderedSelectedLibrary, data);
         });
+        System.out.println(totalScore/1000000.);
 
     }
 
     private static void printResult(List<Library> lib, String path) {
         try {
             List<Library> collect =
-                    lib.stream().filter(libr -> !libr.getContainsBooks().isEmpty()).collect(Collectors.toList());
-            FileWriter writer = new FileWriter(new File(path + "_result.txt"));
-            writer.write(collect.size()+"");
+                            lib.stream().filter(libr -> !libr.getContainsBooks().isEmpty())
+                                            .collect(Collectors.toList());
+            FileWriter writer = new FileWriter(new File(path + score(lib) + ".txt"));
+            writer.write(collect.size() + "");
             writer.write("\n");
-            writer.write(collect.stream().map(libr -> libr.getId() + " " + libr.getContainsBooks().size() + "\n" + libr.getContainsBooks().values().stream().map(books34 -> books34.getId() +"").collect(Collectors.joining(" ")) + "\n").collect(Collectors.joining()));
+            writer.write(collect.stream().map(libr -> libr.getId() + " " + libr.getContainsBooks().size() + "\n" + libr
+                            .getContainsBooks().values().stream().map(books34 -> books34.getId() + "")
+                            .collect(Collectors.joining(" ")) + "\n").collect(Collectors.joining()));
             writer.close();
         } catch (IOException e) {
             e.printStackTrace();
@@ -127,11 +126,13 @@ public class Main {
     }
 
     private static long score(List<Library> libraries) {
-        return libraries.stream().flatMap(lib -> lib.getContainsBooks().values().stream()).mapToInt(Books::getScore).sum();
+        return libraries.stream().flatMap(lib -> lib.getContainsBooks().values().stream()).mapToInt(Books::getScore)
+                        .sum();
     }
 
-    private static double scoreMoyenLibrary(Library library) {
-        int scoreTotal = library.getContainsBooks().values().stream().mapToInt(Books::getScore).sum();
-        return - scoreTotal / (0.0 + library.getSignUpProcess() + (books.size() + 0.0 / library.getCanShipPerDay()));
+    private static int scoreMoyenLibrary(Library library) {
+//        return - library.getContainsBooks().values().stream().mapToInt(Books::getScore).sum();
+        return library.getSignUpProcess();
+//        return -scoreTotal / (0.0 + library.getSignUpProcess() + (books.size() + 0.0 / library.getCanShipPerDay()));
     }
 }
